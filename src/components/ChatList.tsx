@@ -2,13 +2,13 @@ import { useChatStore } from '../stores/chatStore';
 import type { Chat } from '../api/types';
 
 interface Props {
+  onSelectChat: (chatId: number) => void;
   onNewChat: () => void;
 }
 
-export default function ChatList({ onNewChat }: Props) {
+export default function ChatList({ onSelectChat, onNewChat }: Props) {
   const chats = useChatStore((s) => s.chats);
   const activeChatId = useChatStore((s) => s.activeChatId);
-  const setActiveChat = useChatStore((s) => s.setActiveChat);
   const messages = useChatStore((s) => s.messages);
 
   const getChatName = (chat: Chat) => {
@@ -47,7 +47,7 @@ export default function ChatList({ onNewChat }: Props) {
             <div
               key={chat.id}
               className={`chat-list-item ${activeChatId === chat.id ? 'active' : ''}`}
-              onClick={() => setActiveChat(chat.id)}
+              onClick={() => onSelectChat(chat.id)}
             >
               <div className="chat-avatar">
                 {getChatName(chat).charAt(0).toUpperCase()}

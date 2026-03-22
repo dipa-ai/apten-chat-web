@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useChatStore } from '../stores/chatStore';
 import { useAuthStore } from '../stores/authStore';
@@ -14,7 +14,6 @@ export default function ChatPage() {
   const fetchChats = useChatStore((s) => s.fetchChats);
   const setActiveChat = useChatStore((s) => s.setActiveChat);
   const initWsListeners = useChatStore((s) => s.initWsListeners);
-  const activeChatId = useChatStore((s) => s.activeChatId);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [showNewChat, setShowNewChat] = useState(false);
@@ -34,11 +33,13 @@ export default function ChatPage() {
     }
   }, [id, setActiveChat]);
 
-  useEffect(() => {
-    if (activeChatId && !id) {
-      navigate(`/chat/${activeChatId}`, { replace: true });
-    }
-  }, [activeChatId, id, navigate]);
+  const handleSelectChat = useCallback(
+    (chatId: number) => {
+      setActiveChat(chatId);
+      navigate(`/chat/${chatId}`, { replace: true });
+    },
+    [setActiveChat, navigate],
+  );
 
   return (
     <div className="chat-page">
@@ -67,7 +68,10 @@ export default function ChatPage() {
             </button>
           </div>
         </div>
-        <ChatList onNewChat={() => setShowNewChat(true)} />
+        <ChatList
+          onSelectChat={handleSelectChat}
+          onNewChat={() => setShowNewChat(true)}
+        />
       </div>
       <button
         className="sidebar-toggle"
@@ -77,7 +81,11 @@ export default function ChatPage() {
       </button>
       <ChatArea />
       {showNewChat && (
-        <NewChatDialog users={users} onClose={() => setShowNewChat(false)} />
+        <NewChatDialog
+          users={users}
+          onCreated={handleSelectChat}
+          onClose={() => setShowNewChat(false)}
+        />
       )}
     </div>
   );

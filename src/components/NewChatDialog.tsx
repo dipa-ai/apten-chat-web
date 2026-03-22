@@ -5,16 +5,16 @@ import type { User } from '../api/types';
 
 interface Props {
   users: User[];
+  onCreated: (chatId: number) => void;
   onClose: () => void;
 }
 
-export default function NewChatDialog({ users, onClose }: Props) {
+export default function NewChatDialog({ users, onCreated, onClose }: Props) {
   const [type, setType] = useState<'direct' | 'group'>('direct');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(false);
   const createChat = useChatStore((s) => s.createChat);
-  const setActiveChat = useChatStore((s) => s.setActiveChat);
   const currentUser = useAuthStore((s) => s.user);
 
   const otherUsers = users.filter((u) => u.id !== currentUser?.id);
@@ -39,7 +39,7 @@ export default function NewChatDialog({ users, onClose }: Props) {
         selectedUsers,
         type === 'group' ? groupName : undefined,
       );
-      await setActiveChat(chat.id);
+      onCreated(chat.id);
       onClose();
     } catch {
       // ignore
