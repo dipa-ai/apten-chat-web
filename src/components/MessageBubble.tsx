@@ -24,11 +24,9 @@ export default function MessageBubble({ message, isOwn, chatId }: Props) {
     });
   };
 
-  const canEdit = () => {
-    if (!isOwn || isDeleted) return false;
-    const created = new Date(message.created_at).getTime();
-    return Date.now() - created < 24 * 60 * 60 * 1000;
-  };
+  const messageAge = new Date(message.created_at).getTime();
+  // eslint-disable-next-line react-hooks/purity
+  const canEditMsg = isOwn && !isDeleted && Date.now() - messageAge < 86_400_000;
 
   const handleEdit = async () => {
     if (!editContent.trim()) return;
@@ -97,7 +95,7 @@ export default function MessageBubble({ message, isOwn, chatId }: Props) {
       )}
       {showMenu && (
         <div className="message-menu">
-          {canEdit() && (
+          {canEditMsg && (
             <button
               onClick={() => {
                 setEditing(true);

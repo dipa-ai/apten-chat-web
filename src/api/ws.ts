@@ -17,6 +17,13 @@ class WsClient {
 
   connect() {
     this.shouldConnect = true;
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.CONNECTING ||
+        this.ws.readyState === WebSocket.OPEN)
+    ) {
+      return;
+    }
     this.doConnect();
   }
 
