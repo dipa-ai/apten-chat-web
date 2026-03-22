@@ -2,13 +2,16 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { useAuthStore } from '../stores/authStore';
 import MessageBubble from './MessageBubble';
+import type { Message } from '../api/types';
+
+const EMPTY_MESSAGES: Message[] = [];
 
 interface Props {
   chatId: number;
 }
 
 export default function MessageList({ chatId }: Props) {
-  const messages = useChatStore((s) => s.messages[chatId] ?? []);
+  const messages = useChatStore((s) => s.messages[chatId] ?? EMPTY_MESSAGES);
   const hasMore = useChatStore((s) => s.hasMore[chatId] ?? true);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
   const markRead = useChatStore((s) => s.markRead);
