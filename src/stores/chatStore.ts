@@ -104,6 +104,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sendMessage: (chatId, content, replyToId) => {
     const clientId = crypto.randomUUID();
     get().pendingClientIds.set(clientId, chatId);
+
+    // Optimistic: show the message immediately
+    const optimistic: Message = {
+      id: -Date.now(),
+      chat_id: chatId,
+      sender_id: 0, // replaced on ack
+      sender_display_name: '',
+      content,
+      reply_to_id: replyToId ?? null,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+      deleted_at: null,
+      _clientId: clientId,
+    };
+    set((s) => ({
+      messages: {
+        ...s.messages,
+        [chatId]: [...(s.messages[chatId] ?? []), optimistic],
+      },
+    }));
+
     wsClient.send('message.send', {
       chat_id: chatId,
       content,
@@ -201,13 +222,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
             updated_at: null,
             deleted_at: null,
           };
-          set((s) => ({
-            messages: {
-              ...s.messages,
-              [msg.chat_id]: [...(s.messages[msg.chat_id] ?? []), message],
-            },
-          }));
-          // Re-fetch chat list to update last message / ordering
+          set((s) => {
+            const existing = s.messages[msg.chat_id] ?? [];
+            // Replace optimistic message if this is our own echoed back
+            const hasOptimistic = msg.client_id &&
+              existing.some((m) => m._clientId === msg.client_id);
+            const updated = hasOptimistic
+              ? existing.map((m) =>
+                  m._clientId === msg.client_id ? message : m,
+                )
+              : [...existing, message];
+            return {
+              messages: { ...s.messages, [msg.chat_id]: updated },
+            };
+          });
           get().fetchChats();
           break;
         }

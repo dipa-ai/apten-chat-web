@@ -52,6 +52,13 @@ class WsClient {
   private doConnect() {
     const token = getAccessToken();
     if (!token || !this.shouldConnect) return;
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.CONNECTING ||
+        this.ws.readyState === WebSocket.OPEN)
+    ) {
+      return;
+    }
 
     this.ws = new WebSocket(`${BASE_WS}/api/ws?token=${token}`);
 

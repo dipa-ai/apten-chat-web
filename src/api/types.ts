@@ -36,6 +36,7 @@ export interface Message {
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;
+  _clientId?: string;
 }
 
 export interface Attachment {
