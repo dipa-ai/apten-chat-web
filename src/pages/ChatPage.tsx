@@ -18,7 +18,7 @@ export default function ChatPage() {
   const logout = useAuthStore((s) => s.logout);
   const [showNewChat, setShowNewChat] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
 
   useEffect(() => {
     fetchChats();
@@ -37,6 +37,7 @@ export default function ChatPage() {
     (chatId: number) => {
       setActiveChat(chatId);
       navigate(`/chat/${chatId}`, { replace: true });
+      setSidebarOpen(false);
     },
     [setActiveChat, navigate],
   );
@@ -73,6 +74,12 @@ export default function ChatPage() {
           onNewChat={() => setShowNewChat(true)}
         />
       </div>
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       <button
         className="sidebar-toggle"
         onClick={() => setSidebarOpen(!sidebarOpen)}
