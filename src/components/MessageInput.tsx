@@ -120,56 +120,58 @@ export default function MessageInput({ chatId }: Props) {
 
   return (
     <form className="message-input" onSubmit={handleSubmit}>
-      <button
-        type="button"
-        className="composer-icon attach-btn"
-        onClick={() => fileInputRef.current?.click()}
-        title="Attach file"
-        aria-label="Attach file"
-      >
-        <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-          <path
-            d="M8 12l6-6a3 3 0 014.2 4.2l-9 9a4.5 4.5 0 01-6.4-6.4l8-8"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        hidden
-        onChange={handleFileSelect}
-      />
-      <textarea
-        ref={textareaRef}
-        className="message-text-input"
-        placeholder="Message…"
-        value={text}
-        rows={1}
-        onChange={(e) => handleInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        autoFocus
-      />
-      <button
-        type="submit"
-        className={`composer-send ${canSend ? 'active' : ''}`}
-        disabled={!canSend}
-        aria-label="Send"
-      >
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-          <path
-            d="M3 10l14-7-6 14-2-6z"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="1"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+      <div className="composer-shell">
+        <button
+          type="button"
+          className="composer-icon attach-btn"
+          onClick={() => fileInputRef.current?.click()}
+          title="Attach file"
+          aria-label="Attach file"
+        >
+          <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+            <path
+              d="M8 12l6-6a3 3 0 014.2 4.2l-9 9a4.5 4.5 0 01-6.4-6.4l8-8"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          hidden
+          onChange={handleFileSelect}
+        />
+        <textarea
+          ref={textareaRef}
+          className="message-text-input"
+          placeholder="Message…"
+          value={text}
+          rows={1}
+          onChange={(e) => handleInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+        />
+        <button
+          type="submit"
+          className={`composer-send ${canSend ? 'active' : ''}`}
+          disabled={!canSend}
+          aria-label="Send"
+        >
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+            <path
+              d="M3 10l14-7-6 14-2-6z"
+              fill="currentColor"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
     </form>
   );
 }

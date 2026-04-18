@@ -160,6 +160,7 @@ export default function MessageList({ chatId }: Props) {
         key: string;
         isFirstOfGroup: boolean;
         isLastOfGroup: boolean;
+        isAuthorChange: boolean;
         isOwn: boolean;
       };
 
@@ -184,6 +185,10 @@ export default function MessageList({ chatId }: Props) {
         next.sender_id !== msg.sender_id ||
         nextMs - curMs > GROUP_WINDOW_MS ||
         !sameDay(next.created_at, msg.created_at);
+      // author-change = a different sender was just talking. Pure
+      // time gaps within the same author are still "group-start" but
+      // not "author-change", so we can space them less aggressively.
+      const isAuthorChange = !!prev && prev.sender_id !== msg.sender_id;
 
       if (!prev || !sameDay(prev.created_at, msg.created_at)) {
         result.push({
@@ -199,6 +204,7 @@ export default function MessageList({ chatId }: Props) {
         key: msg._clientId ?? String(msg.id),
         isFirstOfGroup,
         isLastOfGroup,
+        isAuthorChange,
         isOwn,
       });
     }
@@ -228,6 +234,7 @@ export default function MessageList({ chatId }: Props) {
       onDrop={handleDrop}
     >
       <div className="message-list" ref={listRef} onScroll={handleScroll}>
+        {!isEmpty && <div className="message-list-spacer" aria-hidden="true" />}
         {!hasMore && messages.length > 0 && (
           <div className="messages-start">Beginning of conversation</div>
         )}
@@ -248,6 +255,7 @@ export default function MessageList({ chatId }: Props) {
                 chatId={chatId}
                 isFirstOfGroup={row.isFirstOfGroup}
                 isLastOfGroup={row.isLastOfGroup}
+                isAuthorChange={row.isAuthorChange}
                 isGroupChat={activeChatMembers.length > 2}
                 readByOther={row.isOwn && row.msg.id > 0 && row.msg.id <= maxOtherReadId}
               />

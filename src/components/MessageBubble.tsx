@@ -9,6 +9,7 @@ interface Props {
   chatId: number;
   isFirstOfGroup: boolean;
   isLastOfGroup: boolean;
+  isAuthorChange: boolean;
   isGroupChat: boolean;
   readByOther: boolean;
 }
@@ -31,6 +32,7 @@ export default function MessageBubble({
   chatId,
   isFirstOfGroup,
   isLastOfGroup,
+  isAuthorChange,
   isGroupChat,
   readByOther,
 }: Props) {
@@ -88,6 +90,7 @@ export default function MessageBubble({
     isOwn ? 'own' : 'other',
     isFirstOfGroup ? 'group-start' : '',
     isLastOfGroup ? 'group-end' : '',
+    isAuthorChange ? 'author-change' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -164,21 +167,33 @@ export default function MessageBubble({
         ) : (
           <>
             <div className="message-content">{message.content}</div>
-            <div className="message-meta">
-              {message.updated_at && (
-                <span className="message-edited">edited</span>
-              )}
-              <span className="message-time">
-                {formatTime(message.created_at)}
-              </span>
-              {isOwn && (
-                <MessageStatus
-                  status={message._status}
-                  read={readByOther}
-                  onRetry={handleRetry}
-                />
-              )}
-            </div>
+            {(() => {
+              const isUnsent =
+                message._status === 'pending' || message._status === 'failed';
+              const showTime = isLastOfGroup || isUnsent;
+              const showStatus = isOwn && (isLastOfGroup || isUnsent);
+              const hasMeta = showTime || showStatus || !!message.updated_at;
+              if (!hasMeta) return null;
+              return (
+                <div className="message-meta">
+                  {message.updated_at && (
+                    <span className="message-edited">edited</span>
+                  )}
+                  {showTime && (
+                    <span className="message-time">
+                      {formatTime(message.created_at)}
+                    </span>
+                  )}
+                  {showStatus && (
+                    <MessageStatus
+                      status={message._status}
+                      read={isLastOfGroup && readByOther}
+                      onRetry={handleRetry}
+                    />
+                  )}
+                </div>
+              );
+            })()}
           </>
         )}
         <button

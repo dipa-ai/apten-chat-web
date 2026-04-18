@@ -22,7 +22,7 @@ export default function ChatPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(window.innerWidth >= 1280);
+  const [infoOpen, setInfoOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

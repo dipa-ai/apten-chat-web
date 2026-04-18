@@ -1,17 +1,17 @@
 :root {
-  --bg-app: #f4f6fa;
+  --bg-app: #edf0f6;
   --bg-panel: #ffffff;
   --bg-elevated: #ffffff;
   --bg-subtle: #eef1f6;
-  --bg-hover: rgba(99, 102, 241, 0.06);
+  --bg-hover: rgba(99, 102, 241, 0.07);
   --bg-active: rgba(99, 102, 241, 0.12);
 
   --text: #0f1220;
-  --text-muted: #6b7280;
-  --text-faint: #9ca3af;
+  --text-muted: #3f4756;
+  --text-faint: #5b6270;
 
-  --border: #e5e7ee;
-  --border-strong: #d4d8e0;
+  --border: #dfe3ec;
+  --border-strong: #c9cfdb;
 
   --accent: #6366f1;
   --accent-hover: #4f46e5;
@@ -66,11 +66,11 @@
     --bg-active: rgba(129, 140, 248, 0.16);
 
     --text: #ecedf4;
-    --text-muted: #8a92a5;
-    --text-faint: #5a6170;
+    --text-muted: #b3bccc;
+    --text-faint: #8a92a5;
 
-    --border: #232833;
-    --border-strong: #2e3442;
+    --border: #262c39;
+    --border-strong: #343b4b;
 
     --accent: #818cf8;
     --accent-hover: #6366f1;
@@ -234,9 +234,9 @@ button {
 }
 
 .sidebar {
-  width: 360px;
-  min-width: 360px;
-  max-width: 400px;
+  width: 300px;
+  min-width: 300px;
+  max-width: 320px;
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
   display: flex;
@@ -244,10 +244,10 @@ button {
   overflow: hidden;
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1440px) {
   .sidebar {
-    width: 400px;
-    min-width: 400px;
+    width: 320px;
+    min-width: 320px;
   }
 }
 
@@ -401,12 +401,12 @@ button {
   flex: 1;
   gap: 8px;
   padding: 0 12px;
-  height: 36px;
+  height: 38px;
   background: var(--bg-subtle);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   color: var(--text-muted);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .chat-search:focus-within {
@@ -426,6 +426,7 @@ button {
 
 .chat-search input::placeholder {
   color: var(--text-muted);
+  opacity: 1;
 }
 
 .chat-search-clear {
@@ -459,22 +460,24 @@ button {
   color: white;
   border: none;
   border-radius: var(--radius-pill);
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 2px 6px var(--accent-ring);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px var(--accent-ring);
 }
 
 .new-chat-btn:hover {
   background: var(--accent-hover);
+  box-shadow: 0 3px 12px var(--accent-ring);
 }
 
 .new-chat-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
 }
 
 .chat-list-items {
@@ -485,10 +488,11 @@ button {
 }
 
 .chat-list-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 10px;
+  padding: 10px 10px 10px 14px;
   cursor: pointer;
   background: none;
   border: none;
@@ -496,15 +500,43 @@ button {
   text-align: left;
   width: 100%;
   color: var(--text);
-  transition: background 0.12s;
+  transition: background 0.12s, transform 0.06s;
 }
 
 .chat-list-item:hover {
   background: var(--bg-hover);
 }
 
+.chat-list-item:active {
+  transform: translateY(1px);
+}
+
 .chat-list-item.active {
-  background: var(--accent-soft);
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.chat-list-item.active:hover {
+  background: rgba(99, 102, 241, 0.18);
+}
+
+.chat-list-item.active::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-list-item.active {
+    background: rgba(129, 140, 248, 0.18);
+  }
+  .chat-list-item.active:hover {
+    background: rgba(129, 140, 248, 0.24);
+  }
 }
 
 .chat-avatar {
@@ -540,7 +572,7 @@ button {
 
 .chat-name {
   font-weight: 600;
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
   letter-spacing: -0.005em;
   white-space: nowrap;
   overflow: hidden;
@@ -562,7 +594,7 @@ button {
 
 .chat-time {
   font-size: var(--fs-xs);
-  color: var(--text-faint);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -592,50 +624,45 @@ button {
 /* Chat area                                                           */
 /* ------------------------------------------------------------------ */
 
+/*
+ * Chat area owns the full width between sidebar and info-panel — no
+ * "narrow white card in a gray field" feel. The old .chat-column
+ * wrapper is gone; instead, each stripe (header, message-list,
+ * composer) uses a padding formula so its CONTENT caps at
+ * --rail-max while the stripe itself spans edge to edge.
+ */
 .chat-area {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  overflow: hidden;
-  background: var(--bg-app);
-  min-width: 0;
-}
-
-.chat-column {
+  --rail-max: 760px;
+  --rail-gutter: max(24px, calc((100% - var(--rail-max)) / 2));
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 920px;
-  min-width: 0;
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
   overflow: hidden;
+  background: var(--bg-panel);
+  min-width: 0;
 }
 
-.chat-column-empty {
+.chat-area-empty {
   align-items: center;
   justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .chat-column {
-    border-left: none;
-    border-right: none;
+@media (max-width: 640px) {
+  .chat-area {
+    --rail-gutter: 16px;
   }
 }
 
 /* ---- Chat header ---- */
 
 .chat-header {
-  padding: 10px 20px;
+  padding: 10px var(--rail-gutter);
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 60px;
+  min-height: 56px;
 }
 
 .chat-header-actions {
@@ -693,6 +720,7 @@ button {
 .chat-header-status {
   font-size: var(--fs-xs);
   color: var(--text-muted);
+  font-weight: 500;
 }
 
 .chat-header-status.online {
@@ -713,7 +741,7 @@ button {
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px 8px;
+  padding: 16px var(--rail-gutter) 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -721,9 +749,17 @@ button {
   scroll-behavior: smooth;
 }
 
+/* Pushes content down when there aren't enough messages to fill the
+   viewport. When content overflows, collapses to 0 so the list
+   scrolls normally. */
+.message-list-spacer {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 .messages-start {
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: var(--fs-sm);
   padding: 12px 16px;
 }
@@ -736,15 +772,16 @@ button {
 }
 
 .date-separator span {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
-  background: var(--bg-subtle);
+  background: var(--bg-panel);
   border: 1px solid var(--border);
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: var(--radius-pill);
+  box-shadow: 0 1px 2px rgba(15, 18, 32, 0.04);
 }
 
 /* Drop overlay */
@@ -848,7 +885,7 @@ button {
 
 .message-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-end;
   max-width: 100%;
 }
@@ -858,27 +895,34 @@ button {
 }
 
 .message-row {
-  margin-top: 1px;
+  margin-top: 4px;
 }
 
 .message-row.group-start {
   margin-top: 10px;
 }
 
-.message-row.group-start:first-child {
+.message-row.author-change {
+  margin-top: 16px;
+}
+
+.message-row.group-start:first-child,
+.message-row.author-change:first-child {
   margin-top: 0;
 }
 
 .bubble-avatar-slot {
-  width: 32px;
-  min-width: 32px;
+  width: 28px;
+  min-width: 28px;
+  align-self: flex-end;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
 }
 
 .bubble-avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent);
@@ -887,13 +931,16 @@ button {
   justify-content: center;
   font-weight: 600;
   font-size: var(--fs-sm);
+  /* Pin to the bottom of the LAST bubble in a group, not the middle
+     of the whole row block. */
+  margin-bottom: 1px;
 }
 
 .message-bubble {
   position: relative;
-  max-width: min(560px, 72%);
-  min-width: 56px;
-  padding: 7px 12px 6px;
+  max-width: min(560px, 70%);
+  min-width: 60px;
+  padding: 7px 13px 6px;
   border-radius: var(--radius-lg);
   word-wrap: break-word;
   font-size: var(--fs-md);
@@ -956,8 +1003,9 @@ button {
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--accent);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   letter-spacing: 0.005em;
+  line-height: 1.2;
 }
 
 .message-content {
@@ -1008,7 +1056,7 @@ button {
 }
 
 .message-bubble.own .message-meta {
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .message-time {
@@ -1172,10 +1220,10 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 24px 10px;
+  padding: 4px var(--rail-gutter) 6px;
   font-size: var(--fs-sm);
   color: var(--text-muted);
-  min-height: 24px;
+  min-height: 20px;
 }
 
 .typing-dots {
@@ -1216,46 +1264,31 @@ button {
 
 .message-input {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 10px 14px 14px;
+  padding: 10px var(--rail-gutter) 14px;
   background: var(--bg-app);
   border-top: 1px solid var(--border);
 }
 
-.message-input > * {
-  /* wrap each control in the pill look via the form-level box below */
-}
-
-.message-input {
-  position: relative;
-}
-
-.message-input::before {
-  content: '';
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  top: 10px;
-  bottom: 14px;
+.composer-shell {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 48px;
   background: var(--bg-panel);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  pointer-events: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  z-index: 0;
+  padding: 4px 4px 4px 10px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
-.message-input:focus-within::before {
+.composer-shell:hover {
+  border-color: var(--text-faint);
+}
+
+.composer-shell:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-ring);
-}
-
-.composer-icon,
-.composer-send,
-.message-text-input {
-  position: relative;
-  z-index: 1;
 }
 
 .composer-icon {
@@ -1268,8 +1301,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, background 0.15s;
-  margin: 0 2px 4px 6px;
+  transition: color 0.15s, background 0.15s, transform 0.1s;
+  margin: 0 0 2px 0;
 }
 
 .composer-icon:hover {
@@ -1277,9 +1310,13 @@ button {
   background: var(--accent-soft);
 }
 
+.composer-icon:active {
+  transform: scale(0.94);
+}
+
 .message-text-input {
   flex: 1;
-  padding: 10px 4px;
+  padding: 11px 6px;
   border: none;
   background: transparent;
   font-family: inherit;
@@ -1294,13 +1331,13 @@ button {
 
 .message-text-input::placeholder {
   color: var(--text-muted);
-  opacity: 0.95;
+  opacity: 1;
 }
 
 .composer-send {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border-radius: 50%;
   background: var(--bg-subtle);
   color: var(--text-faint);
@@ -1309,23 +1346,28 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 6px 4px 2px;
-  transition: background 0.15s, color 0.15s, transform 0.1s;
+  margin: 0;
+  transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 .composer-send.active {
   background: var(--accent);
   color: white;
   cursor: pointer;
-  box-shadow: 0 2px 6px var(--accent-ring);
+  box-shadow:
+    0 2px 10px var(--accent-ring),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .composer-send.active:hover {
   background: var(--accent-hover);
+  box-shadow:
+    0 4px 16px var(--accent-ring),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
 }
 
 .composer-send.active:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1388,14 +1430,14 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 28px 20px 24px;
+  padding: 24px 20px 20px;
   border-bottom: 1px solid var(--border);
   text-align: center;
 }
 
 .info-avatar {
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), #8b5cf6);
   color: #fff;
@@ -1403,9 +1445,9 @@ button {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 32px;
+  font-size: 28px;
   letter-spacing: -0.02em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   box-shadow: 0 6px 20px var(--accent-ring);
 }
 
@@ -1919,6 +1961,27 @@ button {
 }
 
 /* ------------------------------------------------------------------ */
+/* Interactive states (unified focus ring + active micro-reaction)     */
+/* ------------------------------------------------------------------ */
+
+.chat-list-item:focus-visible,
+.btn-icon:focus-visible,
+.composer-send:focus-visible,
+.composer-icon:focus-visible,
+.new-chat-btn:focus-visible,
+.user-menu button:focus-visible,
+.message-menu button:focus-visible,
+.message-menu-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chat-search:focus-within,
+.info-search:focus-within {
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* ------------------------------------------------------------------ */
 /* Misc buttons                                                        */
 /* ------------------------------------------------------------------ */
 
@@ -1929,7 +1992,7 @@ button {
   padding: 6px;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1938,6 +2001,10 @@ button {
 .btn-icon:hover {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.btn-icon:active {
+  transform: scale(0.94);
 }
 
 .btn-small {

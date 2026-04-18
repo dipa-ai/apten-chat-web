@@ -19,13 +19,11 @@ export default function ChatArea({ infoOpen, onToggleInfo }: Props) {
 
   if (activeChatId === null) {
     return (
-      <div className="chat-area">
-        <div className="chat-column chat-column-empty">
-          <EmptyChat
-            title="Select a chat to start messaging"
-            subtitle="Pick a conversation on the left, or create a new one."
-          />
-        </div>
+      <div className="chat-area chat-area-empty">
+        <EmptyChat
+          title="Select a chat to start messaging"
+          subtitle="Pick a conversation on the left, or create a new one."
+        />
       </div>
     );
   }
@@ -51,47 +49,45 @@ export default function ChatArea({ infoOpen, onToggleInfo }: Props) {
 
   return (
     <div className="chat-area">
-      <div className="chat-column">
-        <div className="chat-header">
-          <div className="chat-header-main">
-            <div className="chat-avatar chat-avatar-header">
-              {chatName.charAt(0).toUpperCase()}
-              {dmOnline && <span className="online-dot" />}
-            </div>
-            <div className="chat-header-text">
-              <h3>{chatName}</h3>
-              <span
-                className={`chat-header-status ${dmOnline ? 'online' : ''}`}
-              >
-                {subline}
-              </span>
-            </div>
+      <div className="chat-header">
+        <div className="chat-header-main">
+          <div className="chat-avatar chat-avatar-header">
+            {chatName.charAt(0).toUpperCase()}
+            {dmOnline && <span className="online-dot" />}
           </div>
-          <div className="chat-header-actions">
-            <button
-              type="button"
-              className={`btn-icon ${infoOpen ? 'active' : ''}`}
-              onClick={onToggleInfo}
-              aria-label="Toggle info panel"
-              title="Info"
+          <div className="chat-header-text">
+            <h3>{chatName}</h3>
+            <span
+              className={`chat-header-status ${dmOnline ? 'online' : ''}`}
             >
-              <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-                <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                <circle cx="10" cy="6.5" r="1" fill="currentColor" />
-                <path
-                  d="M10 9v5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
+              {subline}
+            </span>
           </div>
         </div>
-        <MessageList chatId={activeChatId} />
-        <TypingIndicator chatId={activeChatId} members={members} />
-        <MessageInput chatId={activeChatId} />
+        <div className="chat-header-actions">
+          <button
+            type="button"
+            className={`btn-icon ${infoOpen ? 'active' : ''}`}
+            onClick={onToggleInfo}
+            aria-label="Toggle info panel"
+            title="Info"
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <circle cx="10" cy="6.5" r="1" fill="currentColor" />
+              <path
+                d="M10 9v5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
+      <MessageList chatId={activeChatId} />
+      <TypingIndicator chatId={activeChatId} members={members} />
+      <MessageInput chatId={activeChatId} />
     </div>
   );
 }

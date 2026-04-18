@@ -159,10 +159,6 @@ export default function InfoPanel({ onClose }: Props) {
         </div>
       )}
 
-      <div className="info-section">
-        <div className="info-section-title">Shared media</div>
-        <div className="info-hint">Coming soon.</div>
-      </div>
     </aside>
   );
 }
