@@ -26,6 +26,8 @@ export interface ChatDetail {
   members: User[];
 }
 
+export type MessageStatus = 'pending' | 'sent' | 'failed';
+
 export interface Message {
   id: number;
   chat_id: number;
@@ -37,6 +39,7 @@ export interface Message {
   updated_at: string | null;
   deleted_at: string | null;
   _clientId?: string;
+  _status?: MessageStatus;
 }
 
 export interface Attachment {
@@ -109,4 +112,9 @@ export interface WsMessageUpdated {
 export interface WsMessageDeleted {
   id: number;
   chat_id: number;
+}
+
+export interface WsMessageError {
+  client_id: string;
+  reason: string;
 }

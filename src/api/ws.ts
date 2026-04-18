@@ -40,13 +40,20 @@ class WsClient {
     };
   }
 
-  send(type: string, payload: unknown) {
+  // Returns true if the event was handed to the underlying socket right
+  // away, false if it was queued because the socket is not open.
+  send(type: string, payload: unknown): boolean {
     const msg = JSON.stringify({ type, payload });
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(msg);
-    } else {
-      this.queue.push(msg);
+      return true;
     }
+    this.queue.push(msg);
+    return false;
+  }
+
+  isOpen(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
   }
 
   private doConnect() {

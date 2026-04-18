@@ -23,10 +23,19 @@ export default function TypingIndicator({ chatId, members }: Props) {
 
   const text =
     typingUsers.length === 1
-      ? `${typingUsers[0]} is typing...`
+      ? `${typingUsers[0]} is typing`
       : typingUsers.length === 2
-        ? `${typingUsers[0]} and ${typingUsers[1]} are typing...`
-        : `${typingUsers[0]} and ${typingUsers.length - 1} others are typing...`;
+        ? `${typingUsers[0]} and ${typingUsers[1]} are typing`
+        : `${typingUsers[0]} and ${typingUsers.length - 1} others are typing`;
 
-  return <div className="typing-indicator">{text}</div>;
+  return (
+    <div className="typing-indicator">
+      <span className="typing-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+      <span>{text}</span>
+    </div>
+  );
 }
