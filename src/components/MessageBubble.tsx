@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useChatStore } from '../stores/chatStore';
+import { api } from '../api/http';
 import MessageStatus from './MessageStatus';
-import type { Message } from '../api/types';
+import type { Attachment, Message } from '../api/types';
 
 interface Props {
   message: Message;
@@ -24,6 +25,79 @@ function formatTime(dateStr: string) {
 function Avatar({ name }: { name: string }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   return <div className="bubble-avatar">{initial}</div>;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1024;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[i]}`;
+}
+
+// AttachmentView renders an attachment. The file endpoints require a bearer
+// token, so we fetch a short-lived presigned URL with api() and then load it
+// directly in <img>/window.open — cross-origin display/navigation needs no
+// storage CORS.
+export function AttachmentView({ attachment }: { attachment: Attachment }) {
+  const isImage = attachment.mime_type.startsWith('image/');
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const [thumbFailed, setThumbFailed] = useState(false);
+
+  useEffect(() => {
+    if (!isImage) return;
+    let active = true;
+    api<{ url: string }>(`/api/files/${attachment.id}/thumb`)
+      .then((res) => {
+        if (active) setThumbUrl(res.url);
+      })
+      .catch(() => {
+        if (active) setThumbFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [attachment.id, isImage]);
+
+  const openFile = async () => {
+    try {
+      const { url } = await api<{ url: string }>(`/api/files/${attachment.id}`);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      // Surface nothing for now; the bubble still shows the file name.
+    }
+  };
+
+  if (isImage && !thumbFailed) {
+    return (
+      <button
+        type="button"
+        className="attachment attachment-image"
+        onClick={openFile}
+      >
+        {thumbUrl ? (
+          <img src={thumbUrl} alt={attachment.file_name} loading="lazy" />
+        ) : (
+          <span className="attachment-placeholder">{attachment.file_name}</span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="attachment attachment-file"
+      onClick={openFile}
+    >
+      <span className="attachment-file-name">{attachment.file_name}</span>
+      <span className="attachment-file-size">{formatBytes(attachment.file_size)}</span>
+    </button>
+  );
 }
 
 export default function MessageBubble({
@@ -166,7 +240,16 @@ export default function MessageBubble({
           </div>
         ) : (
           <>
-            <div className="message-content">{message.content}</div>
+            {message.content && (
+              <div className="message-content">{message.content}</div>
+            )}
+            {message.attachments.length > 0 && (
+              <div className="message-attachments">
+                {message.attachments.map((attachment) => (
+                  <AttachmentView key={attachment.id} attachment={attachment} />
+                ))}
+              </div>
+            )}
             {(() => {
               const isUnsent =
                 message._status === 'pending' || message._status === 'failed';

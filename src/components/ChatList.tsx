@@ -36,7 +36,11 @@ function formatRelative(iso: string | undefined): string {
 function previewText(msg: Message | undefined, ownId: number | undefined, isGroup: boolean) {
   if (!msg) return '';
   if (msg.deleted_at) return 'Message deleted';
-  const raw = msg.content ?? 'Attachment';
+  const raw =
+    msg.content ??
+    (msg.attachments.length > 0
+      ? `${msg.attachments.length} attachment${msg.attachments.length === 1 ? '' : 's'}`
+      : 'Attachment');
   if (msg.sender_id === ownId) return `You: ${raw}`;
   if (isGroup && msg.sender_display_name) {
     return `${msg.sender_display_name}: ${raw}`;
