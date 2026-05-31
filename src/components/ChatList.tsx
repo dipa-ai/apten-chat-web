@@ -63,7 +63,6 @@ export default function ChatList({ onSelectChat, onNewChat }: Props) {
   const chats = useChatStore((s) => s.chats);
   const activeChatId = useChatStore((s) => s.activeChatId);
   const messages = useChatStore((s) => s.messages);
-  const readReceipts = useChatStore((s) => s.readReceipts);
   const currentUser = useAuthStore((s) => s.user);
   const [query, setQuery] = useState('');
 
@@ -79,24 +78,10 @@ export default function ChatList({ onSelectChat, onNewChat }: Props) {
       const preview = last
         ? previewText(last, currentUser?.id, isGroup)
         : serverPreview(chat, currentUser?.id, isGroup);
-      // Once we've read the chat in-session (our own read receipt exists),
-      // derive unread from local state so the badge clears; otherwise trust the
-      // server count, which is available before the chat is ever opened.
-      const opened =
-        currentUser != null &&
-        readReceipts[chat.id]?.[currentUser.id] !== undefined;
-      let unread = chat.unread_count ?? 0;
-      if (opened && msgs) {
-        const lastReadId = readReceipts[chat.id]?.[currentUser!.id] ?? 0;
-        unread = 0;
-        for (let i = msgs.length - 1; i >= 0; i--) {
-          const m = msgs[i];
-          if (m.id <= 0) continue; // skip optimistic
-          if (m.id <= lastReadId) break;
-          if (m.sender_id === currentUser?.id) continue;
-          unread++;
-        }
-      }
+      // The store keeps unread_count current: the server seeds it at fetch and
+      // incoming messages bump it (cleared when the chat is opened), so the
+      // badge is correct even for chats never opened this session.
+      const unread = chat.unread_count ?? 0;
       const timeSource = last?.created_at ?? chat.updated_at;
       return { chat, last, displayName, preview, unread, timeSource };
     });
@@ -106,7 +91,7 @@ export default function ChatList({ onSelectChat, onNewChat }: Props) {
         it.displayName.toLowerCase().includes(q) ||
         it.preview.toLowerCase().includes(q),
     );
-  }, [chats, messages, readReceipts, currentUser, query]);
+  }, [chats, messages, currentUser, query]);
 
   return (
     <div className="chat-list">
