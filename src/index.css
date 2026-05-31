@@ -1015,6 +1015,66 @@ button {
   overflow-wrap: anywhere;
 }
 
+.message-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.attachment {
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.attachment-image img {
+  display: block;
+  max-width: 280px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.attachment-placeholder {
+  display: block;
+  padding: 24px 16px;
+  font-size: var(--fs-sm);
+  opacity: 0.8;
+}
+
+.attachment-file {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.message-bubble.other .attachment-file {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+}
+
+.attachment-file-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.attachment-file-size {
+  font-size: var(--fs-xs);
+  opacity: 0.8;
+}
+
 .reply-preview {
   display: flex;
   flex-direction: column;

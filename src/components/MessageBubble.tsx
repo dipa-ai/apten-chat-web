@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useChatStore } from '../stores/chatStore';
+import { apiBlobUrl } from '../api/http';
 import MessageStatus from './MessageStatus';
-import type { Message } from '../api/types';
+import type { Attachment, Message } from '../api/types';
 
 interface Props {
   message: Message;
@@ -24,6 +25,94 @@ function formatTime(dateStr: string) {
 function Avatar({ name }: { name: string }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   return <div className="bubble-avatar">{initial}</div>;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1024;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[i]}`;
+}
+
+// AttachmentView renders an attachment. File bytes are fetched with the bearer
+// token (the static <img>/<a> endpoints require auth), so the thumbnail is
+// loaded into an object URL and opening the file streams it the same way.
+function AttachmentView({ attachment }: { attachment: Attachment }) {
+  const isImage = attachment.mime_type.startsWith('image/');
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const [thumbFailed, setThumbFailed] = useState(false);
+
+  useEffect(() => {
+    if (!isImage) return;
+    let active = true;
+    let objectUrl: string | null = null;
+    apiBlobUrl(`/api/files/${attachment.id}/thumb`)
+      .then((url) => {
+        if (!active) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        objectUrl = url;
+        setThumbUrl(url);
+      })
+      .catch(() => {
+        if (active) setThumbFailed(true);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [attachment.id, isImage]);
+
+  const openFile = async (download: boolean) => {
+    try {
+      const url = await apiBlobUrl(`/api/files/${attachment.id}`);
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      if (download) a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Defer revocation so the new tab / download has time to read the blob.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      // Surface nothing for now; the bubble still shows the file name.
+    }
+  };
+
+  if (isImage && !thumbFailed) {
+    return (
+      <button
+        type="button"
+        className="attachment attachment-image"
+        onClick={() => openFile(false)}
+      >
+        {thumbUrl ? (
+          <img src={thumbUrl} alt={attachment.file_name} loading="lazy" />
+        ) : (
+          <span className="attachment-placeholder">{attachment.file_name}</span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="attachment attachment-file"
+      onClick={() => openFile(true)}
+    >
+      <span className="attachment-file-name">{attachment.file_name}</span>
+      <span className="attachment-file-size">{formatBytes(attachment.file_size)}</span>
+    </button>
+  );
 }
 
 export default function MessageBubble({
@@ -166,7 +255,16 @@ export default function MessageBubble({
           </div>
         ) : (
           <>
-            <div className="message-content">{message.content}</div>
+            {message.content && (
+              <div className="message-content">{message.content}</div>
+            )}
+            {message.attachments.length > 0 && (
+              <div className="message-attachments">
+                {message.attachments.map((attachment) => (
+                  <AttachmentView key={attachment.id} attachment={attachment} />
+                ))}
+              </div>
+            )}
             {(() => {
               const isUnsent =
                 message._status === 'pending' || message._status === 'failed';

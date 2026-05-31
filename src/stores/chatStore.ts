@@ -3,6 +3,7 @@ import { api } from '../api/http';
 import { wsClient } from '../api/ws';
 import { useAuthStore } from './authStore';
 import type {
+  Attachment,
   Chat,
   ChatDetail,
   Message,
@@ -31,6 +32,21 @@ interface PendingEntry {
   content: string;
   replyToId: number | null;
   timer: ReturnType<typeof setTimeout>;
+}
+
+// Shape returned by POST /api/chats/:id/upload. The embedded message is the raw
+// row and lacks the sender display name and attachment list a full Message has.
+interface UploadResult {
+  message: {
+    id: number;
+    chat_id: number;
+    sender_id: number;
+    content: string | null;
+    reply_to_id: number | null;
+    created_at: string;
+    updated_at: string | null;
+  };
+  attachment: Attachment;
 }
 
 interface ChatState {
@@ -235,6 +251,7 @@ export const useChatStore = create<ChatState>((set, get) => {
         created_at: new Date().toISOString(),
         updated_at: null,
         deleted_at: null,
+        attachments: [],
         _clientId: clientId,
         _status: 'pending',
       };
@@ -265,7 +282,11 @@ export const useChatStore = create<ChatState>((set, get) => {
         messages: {
           ...s.messages,
           [chatId]: (s.messages[chatId] ?? []).map((m) =>
-            m.id === messageId ? updated : m,
+            // The edit endpoint returns the bare message row (no attachments
+            // or sender name), so merge over the existing message to keep them.
+            m.id === messageId
+              ? { ...m, ...updated, attachments: updated.attachments ?? m.attachments }
+              : m,
           ),
         },
       }));
@@ -325,9 +346,25 @@ export const useChatStore = create<ChatState>((set, get) => {
     uploadFile: async (chatId, file) => {
       const form = new FormData();
       form.append('file', file);
-      await api(`/api/chats/${chatId}/upload`, {
+      const result = await api<UploadResult>(`/api/chats/${chatId}/upload`, {
         method: 'POST',
         body: form,
+      });
+      // Merge the upload response immediately so the sender sees the file
+      // without waiting for the message.new broadcast (which is deduped by id).
+      const me = useAuthStore.getState().user;
+      const uploaded: Message = {
+        ...result.message,
+        sender_display_name: me?.display_name ?? '',
+        deleted_at: null,
+        attachments: [result.attachment],
+      };
+      set((s) => {
+        const existing = s.messages[chatId] ?? [];
+        if (existing.some((m) => m.id === uploaded.id)) return {};
+        return {
+          messages: { ...s.messages, [chatId]: [...existing, uploaded] },
+        };
       });
     },
 
@@ -350,6 +387,7 @@ export const useChatStore = create<ChatState>((set, get) => {
               created_at: msg.created_at,
               updated_at: null,
               deleted_at: null,
+              attachments: msg.attachments ?? [],
             };
             if (msg.client_id) clearPending(msg.client_id);
             set((s) => {
@@ -357,13 +395,17 @@ export const useChatStore = create<ChatState>((set, get) => {
               const hasOptimistic =
                 msg.client_id &&
                 existing.some((m) => m._clientId === msg.client_id);
+              // File uploads carry no client_id and are also merged locally
+              // from the upload response, so dedupe by id to avoid doubles.
               const updated = hasOptimistic
                 ? existing.map((m) =>
                     m._clientId === msg.client_id
                       ? { ...message, _status: 'sent' as const }
                       : m,
                   )
-                : [...existing, message];
+                : existing.some((m) => m.id === message.id)
+                  ? existing
+                  : [...existing, message];
               return {
                 messages: { ...s.messages, [msg.chat_id]: updated },
               };

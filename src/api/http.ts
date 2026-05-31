@@ -69,6 +69,36 @@ export async function api<T = unknown>(
   return res.json();
 }
 
+// apiBlobUrl fetches a binary resource (e.g. a file or thumbnail) with the
+// bearer token attached, following the server's redirect to presigned storage,
+// and returns an object URL for the response body. Callers own the returned URL
+// and must URL.revokeObjectURL() it when done. Reuses the same 401-refresh flow
+// as api().
+export async function apiBlobUrl(path: string): Promise<string> {
+  const headers = new Headers();
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  let res = await fetch(`${BASE}${path}`, { headers });
+
+  if (res.status === 401 && refreshToken) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      headers.set('Authorization', `Bearer ${accessToken}`);
+      res = await fetch(`${BASE}${path}`, { headers });
+    }
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new ApiError(res.status, text);
+  }
+
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 export class ApiError extends Error {
   status: number;
   body: string;
