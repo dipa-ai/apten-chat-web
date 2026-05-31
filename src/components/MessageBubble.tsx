@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useChatStore } from '../stores/chatStore';
-import { apiBlobUrl } from '../api/http';
+import { api } from '../api/http';
 import MessageStatus from './MessageStatus';
 import type { Attachment, Message } from '../api/types';
 
@@ -39,10 +39,11 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[i]}`;
 }
 
-// AttachmentView renders an attachment. File bytes are fetched with the bearer
-// token (the static <img>/<a> endpoints require auth), so the thumbnail is
-// loaded into an object URL and opening the file streams it the same way.
-function AttachmentView({ attachment }: { attachment: Attachment }) {
+// AttachmentView renders an attachment. The file endpoints require a bearer
+// token, so we fetch a short-lived presigned URL with api() and then load it
+// directly in <img>/window.open — cross-origin display/navigation needs no
+// storage CORS.
+export function AttachmentView({ attachment }: { attachment: Attachment }) {
   const isImage = attachment.mime_type.startsWith('image/');
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -50,38 +51,22 @@ function AttachmentView({ attachment }: { attachment: Attachment }) {
   useEffect(() => {
     if (!isImage) return;
     let active = true;
-    let objectUrl: string | null = null;
-    apiBlobUrl(`/api/files/${attachment.id}/thumb`)
-      .then((url) => {
-        if (!active) {
-          URL.revokeObjectURL(url);
-          return;
-        }
-        objectUrl = url;
-        setThumbUrl(url);
+    api<{ url: string }>(`/api/files/${attachment.id}/thumb`)
+      .then((res) => {
+        if (active) setThumbUrl(res.url);
       })
       .catch(() => {
         if (active) setThumbFailed(true);
       });
     return () => {
       active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [attachment.id, isImage]);
 
-  const openFile = async (download: boolean) => {
+  const openFile = async () => {
     try {
-      const url = await apiBlobUrl(`/api/files/${attachment.id}`);
-      const a = document.createElement('a');
-      a.href = url;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      if (download) a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Defer revocation so the new tab / download has time to read the blob.
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      const { url } = await api<{ url: string }>(`/api/files/${attachment.id}`);
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch {
       // Surface nothing for now; the bubble still shows the file name.
     }
@@ -92,7 +77,7 @@ function AttachmentView({ attachment }: { attachment: Attachment }) {
       <button
         type="button"
         className="attachment attachment-image"
-        onClick={() => openFile(false)}
+        onClick={openFile}
       >
         {thumbUrl ? (
           <img src={thumbUrl} alt={attachment.file_name} loading="lazy" />
@@ -107,7 +92,7 @@ function AttachmentView({ attachment }: { attachment: Attachment }) {
     <button
       type="button"
       className="attachment attachment-file"
-      onClick={() => openFile(true)}
+      onClick={openFile}
     >
       <span className="attachment-file-name">{attachment.file_name}</span>
       <span className="attachment-file-size">{formatBytes(attachment.file_size)}</span>
