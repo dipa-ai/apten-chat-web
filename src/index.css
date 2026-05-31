@@ -2029,3 +2029,20 @@ button {
 .btn-danger:hover {
   background: var(--danger-bg);
 }
+
+/* WebSocket connection status banner (shown below the chat header while the
+   realtime connection is establishing, reconnecting, or offline). */
+.connection-banner {
+  margin: 0 var(--rail-gutter);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.connection-offline {
+  color: var(--danger);
+  background: var(--danger-bg);
+}

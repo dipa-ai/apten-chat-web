@@ -44,6 +44,21 @@ function previewText(msg: Message | undefined, ownId: number | undefined, isGrou
   return raw;
 }
 
+// serverPreview builds a last-message preview from the server-provided chat list
+// fields, so a chat shows its latest message without loading message history.
+function serverPreview(chat: Chat, ownId: number | undefined, isGroup: boolean) {
+  if (chat.last_message_deleted_at) return 'Message deleted';
+  if (chat.last_message_id == null && chat.last_message_content == null) return '';
+  const raw = chat.last_message_content ?? 'Attachment';
+  if (chat.last_message_sender_id != null && chat.last_message_sender_id === ownId) {
+    return `You: ${raw}`;
+  }
+  if (isGroup && chat.last_message_sender_display_name) {
+    return `${chat.last_message_sender_display_name}: ${raw}`;
+  }
+  return raw;
+}
+
 export default function ChatList({ onSelectChat, onNewChat }: Props) {
   const chats = useChatStore((s) => s.chats);
   const activeChatId = useChatStore((s) => s.activeChatId);
@@ -55,15 +70,25 @@ export default function ChatList({ onSelectChat, onNewChat }: Props) {
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     const enriched = chats.map((chat) => {
+      const isGroup = chat.type === 'group';
       const msgs = messages[chat.id];
       const last = msgs && msgs.length > 0 ? msgs[msgs.length - 1] : undefined;
-      const displayName = getChatName(chat);
-      const preview = previewText(last, currentUser?.id, chat.type === 'group');
-      const lastReadId = currentUser
-        ? (readReceipts[chat.id]?.[currentUser.id] ?? 0)
-        : 0;
-      let unread = 0;
-      if (msgs) {
+      const displayName = chat.display_name || getChatName(chat);
+      // Prefer a locally known last message (includes real-time arrivals); fall
+      // back to the server's snapshot so unopened chats still show a preview.
+      const preview = last
+        ? previewText(last, currentUser?.id, isGroup)
+        : serverPreview(chat, currentUser?.id, isGroup);
+      // Once we've read the chat in-session (our own read receipt exists),
+      // derive unread from local state so the badge clears; otherwise trust the
+      // server count, which is available before the chat is ever opened.
+      const opened =
+        currentUser != null &&
+        readReceipts[chat.id]?.[currentUser.id] !== undefined;
+      let unread = chat.unread_count ?? 0;
+      if (opened && msgs) {
+        const lastReadId = readReceipts[chat.id]?.[currentUser!.id] ?? 0;
+        unread = 0;
         for (let i = msgs.length - 1; i >= 0; i--) {
           const m = msgs[i];
           if (m.id <= 0) continue; // skip optimistic
@@ -110,6 +135,7 @@ export default function ChatList({ onSelectChat, onNewChat }: Props) {
             key={chat.id}
             type="button"
             className={`chat-list-item ${activeChatId === chat.id ? 'active' : ''}`}
+            aria-current={activeChatId === chat.id ? 'true' : undefined}
             onClick={() => onSelectChat(chat.id)}
           >
             <div className="chat-avatar">

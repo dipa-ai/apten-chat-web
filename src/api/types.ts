@@ -19,6 +19,16 @@ export interface Chat {
   created_by?: number;
   created_at: string;
   updated_at: string;
+  // Server-provided list metadata. Present on items from GET /api/chats; absent
+  // on the raw chat returned by GET /api/chats/:id and POST /api/chats.
+  display_name?: string;
+  display_avatar_url?: string | null;
+  last_message_id?: number | null;
+  last_message_content?: string | null;
+  last_message_sender_id?: number | null;
+  last_message_sender_display_name?: string | null;
+  last_message_deleted_at?: string | null;
+  unread_count?: number;
 }
 
 export interface ChatDetail {
@@ -32,12 +42,14 @@ export interface Message {
   id: number;
   chat_id: number;
   sender_id: number;
+  sender_username?: string;
   sender_display_name: string;
   content: string | null;
   reply_to_id: number | null;
   created_at: string;
   updated_at: string | null;
   deleted_at: string | null;
+  attachments: Attachment[];
   _clientId?: string;
   _status?: MessageStatus;
 }

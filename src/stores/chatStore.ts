@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api/http';
-import { wsClient } from '../api/ws';
-import { useAuthStore } from './authStore';
+import { wsClient, type WsStatus } from '../api/ws';
 import type {
   Chat,
   ChatDetail,
@@ -43,6 +42,7 @@ interface ChatState {
   readReceipts: Record<number, Record<number, number>>; // chatId -> userId -> lastReadMsgId
   toasts: Toast[];
   hasMore: Record<number, boolean>;
+  wsStatus: WsStatus;
 
   fetchChats: () => Promise<void>;
   setActiveChat: (chatId: number | null) => Promise<void>;
@@ -158,35 +158,14 @@ export const useChatStore = create<ChatState>((set, get) => {
     readReceipts: {},
     toasts: [],
     hasMore: {},
+    wsStatus: 'idle',
 
     fetchChats: async () => {
+      // The server returns frontend-ready chat list items (resolved display
+      // name/avatar, last message preview, unread count), so no per-chat
+      // enrichment round-trips are needed.
       const chats = await api<Chat[]>('/api/chats');
-      // Direct chats come back with name=null. Resolve each to the
-      // counterpart's display name by fetching its detail once. For a
-      // tiny contact list this is fine; if we ever grow past that we
-      // should return a display_name server-side.
-      const meId = useAuthStore.getState().user?.id;
-      const enriched = await Promise.all(
-        chats.map(async (c) => {
-          if (c.type === 'direct' && !c.name && meId != null) {
-            try {
-              const detail = await api<ChatDetail>(`/api/chats/${c.id}`);
-              const other = detail.members.find((m) => m.id !== meId);
-              if (other) {
-                return {
-                  ...c,
-                  name: other.display_name,
-                  avatar_url: other.avatar_url ?? c.avatar_url,
-                };
-              }
-            } catch {
-              // fall through with original chat
-            }
-          }
-          return c;
-        }),
-      );
-      set({ chats: enriched });
+      set({ chats });
     },
 
     setActiveChat: async (chatId) => {
@@ -235,6 +214,7 @@ export const useChatStore = create<ChatState>((set, get) => {
         created_at: new Date().toISOString(),
         updated_at: null,
         deleted_at: null,
+        attachments: [],
         _clientId: clientId,
         _status: 'pending',
       };
@@ -336,7 +316,10 @@ export const useChatStore = create<ChatState>((set, get) => {
     },
 
     initWsListeners: () => {
-      return wsClient.subscribe((event: WsEvent) => {
+      const unsubStatus = wsClient.subscribeStatus((wsStatus) =>
+        set({ wsStatus }),
+      );
+      const unsubEvents = wsClient.subscribe((event: WsEvent) => {
         switch (event.type) {
           case 'message.new': {
             const msg = event.payload as WsMessageNew;
@@ -350,6 +333,7 @@ export const useChatStore = create<ChatState>((set, get) => {
               created_at: msg.created_at,
               updated_at: null,
               deleted_at: null,
+              attachments: msg.attachments ?? [],
             };
             if (msg.client_id) clearPending(msg.client_id);
             set((s) => {
@@ -461,6 +445,10 @@ export const useChatStore = create<ChatState>((set, get) => {
           }
         }
       });
+      return () => {
+        unsubEvents();
+        unsubStatus();
+      };
     },
   };
 });
