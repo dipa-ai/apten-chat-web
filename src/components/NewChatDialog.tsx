@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { useAuthStore } from '../stores/authStore';
 import type { User } from '../api/types';
@@ -18,6 +18,14 @@ export default function NewChatDialog({ users, onCreated, onClose }: Props) {
   const currentUser = useAuthStore((s) => s.user);
 
   const otherUsers = users.filter((u) => u.id !== currentUser?.id);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
 
   const toggleUser = (id: number) => {
     if (type === 'direct') {
@@ -50,8 +58,14 @@ export default function NewChatDialog({ users, onCreated, onClose }: Props) {
 
   return (
     <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <h2>New Chat</h2>
+      <div
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-chat-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="new-chat-title">New Chat</h2>
         <div className="chat-type-toggle">
           <button
             className={type === 'direct' ? 'active' : ''}

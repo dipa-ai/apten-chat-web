@@ -1,3 +1,5 @@
+import { wsClient } from './ws';
+
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
 let accessToken: string | null = localStorage.getItem('access_token');
@@ -32,6 +34,9 @@ async function refreshAccessToken(): Promise<boolean> {
     if (!res.ok) return false;
     const data = await res.json();
     setTokens(data.access_token, data.refresh_token);
+    // The WebSocket authenticates with the access token at connect time, so a
+    // refreshed token only takes effect on the socket after a reconnect.
+    wsClient.reconnectWithLatestToken();
     return true;
   } catch {
     return false;

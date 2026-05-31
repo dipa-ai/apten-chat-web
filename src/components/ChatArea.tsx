@@ -16,6 +16,11 @@ export default function ChatArea({ infoOpen, onToggleInfo }: Props) {
   const members = useChatStore((s) => s.activeChatMembers);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
   const currentUser = useAuthStore((s) => s.user);
+  const wsStatus = useChatStore((s) => s.wsStatus);
+  const showConnectionBanner =
+    wsStatus === 'connecting' ||
+    wsStatus === 'reconnecting' ||
+    wsStatus === 'offline';
 
   if (activeChatId === null) {
     return (
@@ -35,8 +40,9 @@ export default function ChatArea({ infoOpen, onToggleInfo }: Props) {
       ? members.find((m) => m.id !== currentUser.id)
       : undefined;
   const chatName =
-    chat?.name ??
-    counterpart?.display_name ??
+    chat?.display_name ||
+    chat?.name ||
+    counterpart?.display_name ||
     (isGroup ? 'Group Chat' : `Chat #${activeChatId}`);
 
   const onlineMembers = members.filter((m) => onlineUsers.has(m.id));
@@ -85,6 +91,15 @@ export default function ChatArea({ infoOpen, onToggleInfo }: Props) {
           </button>
         </div>
       </div>
+      {showConnectionBanner && (
+        <div className={`connection-banner connection-${wsStatus}`}>
+          {wsStatus === 'offline'
+            ? 'You are offline. Messages will send when the connection returns.'
+            : wsStatus === 'connecting'
+              ? 'Connecting…'
+              : 'Reconnecting…'}
+        </div>
+      )}
       <MessageList chatId={activeChatId} />
       <TypingIndicator chatId={activeChatId} members={members} />
       <MessageInput chatId={activeChatId} />

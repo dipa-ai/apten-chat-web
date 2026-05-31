@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api/http';
-import { wsClient } from '../api/ws';
+import { wsClient, type WsStatus } from '../api/ws';
 import { useAuthStore } from './authStore';
 import type {
   Attachment,
@@ -59,6 +59,7 @@ interface ChatState {
   readReceipts: Record<number, Record<number, number>>; // chatId -> userId -> lastReadMsgId
   toasts: Toast[];
   hasMore: Record<number, boolean>;
+  wsStatus: WsStatus;
 
   fetchChats: () => Promise<void>;
   setActiveChat: (chatId: number | null) => Promise<void>;
@@ -130,11 +131,23 @@ export const useChatStore = create<ChatState>((set, get) => {
     }
   };
 
-  const bumpChatToTop = (chatId: number, createdAt: string) => {
+  // bumpChatToTop moves a chat to the top of the list on new activity and keeps
+  // its unread badge current: an incoming message from someone else bumps the
+  // count unless the chat is currently open (the user is reading it).
+  const bumpChatToTop = (
+    chatId: number,
+    createdAt: string,
+    fromOther: boolean,
+  ) => {
     set((s) => {
       const idx = s.chats.findIndex((c) => c.id === chatId);
       if (idx === -1) return {};
-      const chat = { ...s.chats[idx], updated_at: createdAt };
+      const prev = s.chats[idx];
+      const isActive = s.activeChatId === chatId;
+      let unread_count = prev.unread_count ?? 0;
+      if (isActive) unread_count = 0;
+      else if (fromOther) unread_count += 1;
+      const chat = { ...prev, updated_at: createdAt, unread_count };
       const next = s.chats.slice();
       next.splice(idx, 1);
       next.unshift(chat);
@@ -174,39 +187,28 @@ export const useChatStore = create<ChatState>((set, get) => {
     readReceipts: {},
     toasts: [],
     hasMore: {},
+    wsStatus: 'idle',
 
     fetchChats: async () => {
+      // The server returns frontend-ready chat list items (resolved display
+      // name/avatar, last message preview, unread count), so no per-chat
+      // enrichment round-trips are needed.
       const chats = await api<Chat[]>('/api/chats');
-      // Direct chats come back with name=null. Resolve each to the
-      // counterpart's display name by fetching its detail once. For a
-      // tiny contact list this is fine; if we ever grow past that we
-      // should return a display_name server-side.
-      const meId = useAuthStore.getState().user?.id;
-      const enriched = await Promise.all(
-        chats.map(async (c) => {
-          if (c.type === 'direct' && !c.name && meId != null) {
-            try {
-              const detail = await api<ChatDetail>(`/api/chats/${c.id}`);
-              const other = detail.members.find((m) => m.id !== meId);
-              if (other) {
-                return {
-                  ...c,
-                  name: other.display_name,
-                  avatar_url: other.avatar_url ?? c.avatar_url,
-                };
-              }
-            } catch {
-              // fall through with original chat
-            }
-          }
-          return c;
-        }),
-      );
-      set({ chats: enriched });
+      set({ chats });
     },
 
     setActiveChat: async (chatId) => {
-      set({ activeChatId: chatId, activeChatMembers: [] });
+      // Opening a chat marks it read, so clear its unread badge immediately.
+      set((s) => ({
+        activeChatId: chatId,
+        activeChatMembers: [],
+        chats:
+          chatId === null
+            ? s.chats
+            : s.chats.map((c) =>
+                c.id === chatId ? { ...c, unread_count: 0 } : c,
+              ),
+      }));
       if (chatId === null) return;
       const msgs = get().messages[chatId];
       if (!msgs || msgs.length === 0) {
@@ -373,7 +375,10 @@ export const useChatStore = create<ChatState>((set, get) => {
     },
 
     initWsListeners: () => {
-      return wsClient.subscribe((event: WsEvent) => {
+      const unsubStatus = wsClient.subscribeStatus((wsStatus) =>
+        set({ wsStatus }),
+      );
+      const unsubEvents = wsClient.subscribe((event: WsEvent) => {
         switch (event.type) {
           case 'message.new': {
             const msg = event.payload as WsMessageNew;
@@ -410,10 +415,14 @@ export const useChatStore = create<ChatState>((set, get) => {
                 messages: { ...s.messages, [msg.chat_id]: updated },
               };
             });
-            // Bump chat to top without a round-trip; fall back to
-            // fetchChats only when we don't know this chat yet.
+            // Bump chat to top (and update its unread badge) without a
+            // round-trip; fall back to fetchChats only when we don't know this
+            // chat yet. A message is "from other" when it isn't ours — our own
+            // sends echo back with a client_id we recognize.
+            const myId = useAuthStore.getState().user?.id;
+            const fromOther = msg.sender_id !== myId;
             if (get().chats.some((c) => c.id === msg.chat_id)) {
-              bumpChatToTop(msg.chat_id, msg.created_at);
+              bumpChatToTop(msg.chat_id, msg.created_at, fromOther);
             } else {
               get().fetchChats();
             }
@@ -503,6 +512,10 @@ export const useChatStore = create<ChatState>((set, get) => {
           }
         }
       });
+      return () => {
+        unsubEvents();
+        unsubStatus();
+      };
     },
   };
 });
